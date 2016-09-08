@@ -29,6 +29,7 @@
     "nock": "3.6.0",
     "num": "0.2.1",
     "request": "2.74.0",
+    "typescript": "^1.8.10",
     "ws": "1.1.1"
   },
   "description": "Client for the GDAX API",
@@ -52,11 +53,15 @@
   ],
   "license": "MIT",
   "main": "index.js",
+  "prepublish": "tsc",
   "repository": {
     "type": "git",
     "url": "git://github.com/coinbase/gdax-node.git"
   },
   "scripts": {
     "test": "mocha --ui qunit --bail --reporter list tests/*.js"
+  },
+  "typescript": {
+
   }
 }
