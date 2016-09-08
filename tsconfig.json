@@ -9,7 +9,7 @@
         //"noUnusedParameters": true,
         //"noImplicitThis": true,
         "noImplicitReturns": true,
-        "outDir": "lib/",
+        "outDir": ".",
         //"strictNullChecks": true,
         "target": "es6"
     },
