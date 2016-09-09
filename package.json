@@ -30,7 +30,7 @@
     "num": "0.2.1",
     "request": "2.74.0",
     "typescript": "^1.8.10",
-    "ws": "1.1.1"
+    "ws": "^1.1.1"
   },
   "description": "Client for the GDAX API",
   "devDependencies": {
@@ -61,7 +61,5 @@
   "scripts": {
     "test": "mocha --ui qunit --bail --reporter list tests/*.js"
   },
-  "typescript": {
-
-  }
+  "typescript": {}
 }

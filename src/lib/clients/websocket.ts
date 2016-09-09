@@ -1,72 +1,62 @@
-var EventEmitter = require('events').EventEmitter;
-var Websocket = require('ws');
-var util = require('util');
-var _  = {assign: require('lodash.assign')};
+///<reference path="../typings/index.d.ts" />
+import events = require('events');
+import Websocket = require('ws');
 
-var WebsocketClient = function(productID, websocketURI) {
-  var self = this;
-  self.productID = productID || 'BTC-USD';
-  self.websocketURI = websocketURI || 'wss://ws-feed.gdax.com';
-  EventEmitter.call(self);
-  self.connect();
-};
+export default class WebsocketClient extends events.EventEmitter {
+  productID: string;
+  websocketURI: string;
+  private socket: Websocket;
+  private pinger: NodeJS.Timer;
 
-util.inherits(WebsocketClient, EventEmitter);
+  constructor(productID : string, websocketURI : string) {
+    super();
+    this.productID = productID || 'BTC-USD';
+    this.websocketURI = websocketURI || 'wss://ws-feed.gdax.com';
+    this.connect();
+  }
 
-_.assign(WebsocketClient.prototype, new function() {
-  var prototype = this;
-
-  prototype.connect = function() {
-    var self = this;
-
-    if (self.socket) {
-      self.socket.close();
+  connect() : void {
+    if (this.socket) {
+      this.socket.close();
     }
 
-    self.socket = new Websocket(self.websocketURI);
+    this.socket = new Websocket(this.websocketURI);
 
-    self.socket.on('message', self.onMessage.bind(self));
-    self.socket.on('open', self.onOpen.bind(self));
-    self.socket.on('close', self.onClose.bind(self));
-  };
+    this.socket.on('message', this.onMessage.bind(this));
+    this.socket.on('open',    this.onOpen.bind(this));
+    this.socket.on('close',   this.onClose.bind(this));
+  }
 
-  prototype.disconnect = function() {
-    var self = this;
-
-    if (!self.socket) {
+  disconnect() : void {
+    if (!this.socket) {
       throw "Could not disconnect (not connected)"
     }
 
-    self.socket.close();
-  };
+    this.socket.close();
+  }
 
-  prototype.onOpen = function() {
-    var self = this;
-    self.emit('open');
+  onOpen() {
+    this.emit('open');
     var subscribeMessage = {
       type: 'subscribe',
-      product_id: self.productID,
+      product_id: this.productID,
     };
-    self.socket.send(JSON.stringify(subscribeMessage));
+    this.socket.send(JSON.stringify(subscribeMessage));
 
     // Set a 30 second ping to keep connection alive
-    self.pinger = setInterval(function(){
-      self.socket.ping("keepalive");
+    this.pinger = setInterval(function(){
+      this.socket.ping("keepalive");
     }, 30000);
 
-  };
+  }
 
-  prototype.onClose = function() {
-    var self = this;
-    clearInterval(self.pinger);
-    self.socket = null;
-    self.emit('close');
-  };
+  onClose() {
+    clearInterval(this.pinger);
+    this.socket = null;
+    this.emit('close');
+  }
 
-  prototype.onMessage = function(data) {
-    var self = this;
-    self.emit('message', JSON.parse(data));
-  };
-});
-
-module.exports = exports = WebsocketClient;
+  onMessage(data : string) {
+    this.emit('message', JSON.parse(data));
+  }
+}

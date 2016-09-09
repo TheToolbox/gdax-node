@@ -1,6 +1,6 @@
 ///<reference path="../typings/index.d.ts" />
-var request = require('request');
-var Readable = require('stream').Readable;
+import request = require('request');
+import stream = require('stream');
 
 var API_LIMIT = 100;
 
@@ -13,7 +13,7 @@ export default class PublicClient {
     this.apiURI = apiURI || 'https://api.gdax.com';
   }
 
-  private addHeaders(obj: any, additional?: any) {
+  protected addHeaders(obj: any, additional?: any) {
     obj.headers = obj.headers || {};
     obj.headers['User-Agent'] = 'gdax-node-client';
     obj.headers['Accept'] = 'application/json';
@@ -23,15 +23,15 @@ export default class PublicClient {
     return obj;
   }
 
-  private makeRelativeURI(parts: string[]) {
+  protected makeRelativeURI(parts: string[]) {
     return '/' + parts.join('/');
   }
 
-  private makeAbsoluteURI(relativeURI: string) {
+  protected makeAbsoluteURI(relativeURI: string) {
     return this.apiURI + relativeURI;
   }
 
-  private request(method: string, uriParts: string[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> {
+  protected request(method: string, uriParts: string[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> {
     var opts = optsOrCallback || {};
     if (!callback && (typeof optsOrCallback === 'function')) {
       callback = optsOrCallback;
@@ -64,10 +64,10 @@ export default class PublicClient {
     });
   }
 
-  private get(uriParts: string[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('get', uriParts, optsOrCallback, callback); }
-  private post(uriParts: string[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('ppst', uriParts, optsOrCallback, callback); }
-  private put(uriParts: string[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('put', uriParts, optsOrCallback, callback); }
-  private delete(uriParts: string[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('delete', uriParts, optsOrCallback, callback); }
+  protected get(uriParts: string[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('get', uriParts, optsOrCallback, callback); }
+  protected post(uriParts: string[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('ppst', uriParts, optsOrCallback, callback); }
+  protected put(uriParts: string[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('put', uriParts, optsOrCallback, callback); }
+  protected delete(uriParts: string[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('delete', uriParts, optsOrCallback, callback); }
 
   getProducts(callback?: (err: any, response: any, data: any) => {}): Promise<any> {
     return this.get(['products'], callback);
@@ -126,7 +126,6 @@ export default class PublicClient {
       }
 
       if (resp.statusCode !== 200) {
-        //console.log(resp);
         stream.emit('error', new Error('Encountered status code ' + resp.statusCode));
       }
 
@@ -148,7 +147,7 @@ export default class PublicClient {
     }.bind(this));
   }
 
-  getProductTradeStream(tradesFrom : number, tradesTo : number | ((trade : any)=>boolean)): Promise<any> {
+  getProductTradeStream(tradesFrom : number, tradesTo : number | ((trade : any)=>boolean)): stream.Readable {
     var shouldStop : (trade : any)=>boolean = null;
 
     if (typeof tradesTo === 'function') {
@@ -157,7 +156,7 @@ export default class PublicClient {
       tradesTo = null;
     }
 
-    var rs = new Readable({ objectMode: true });
+    var rs = new stream.Readable({ objectMode: true });
     var started = false;
 
     rs._read = function () {
@@ -194,8 +193,6 @@ export default class PublicClient {
     return this.get(['time'], callback);
   }
 }
-
-
 
 export interface RequestCallback {
   (err: any, response: any, data: any): void
