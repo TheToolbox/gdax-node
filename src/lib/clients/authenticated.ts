@@ -1,4 +1,5 @@
 ///<reference path="../typings/index.d.ts" />
+///<reference path="../types.d.ts" />
 import crypto = require('crypto');
 import querystring = require('querystring');
 import request = require('request');
@@ -17,12 +18,7 @@ export default class AuthenticatedClient extends PublicClient {
     this.passphrase = passphrase;
   }
 
-  protected request(method: string, uriParts: string[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> {
-    var opts = optsOrCallback || {};
-    if (!callback && (typeof optsOrCallback === 'function')) {
-      callback = optsOrCallback;
-      opts = {};
-    }
+  protected request(method: string, uriParts: string[], opts: Object, callback?: RequestCallback): Promise<Result> {
     //removed behavior: throw on no callback (unnecessary)
     opts.method = method.toUpperCase()
 
@@ -46,7 +42,7 @@ export default class AuthenticatedClient extends PublicClient {
         if (err) {
           reject(err);
         } else {
-          resolve(data);
+          resolve({ response: response, data: data });
         }
       });
     });
@@ -75,15 +71,15 @@ export default class AuthenticatedClient extends PublicClient {
     };
   }
 
-  getAccounts(callback: RequestCallback): Promise<any> {
+  getAccounts(callback?: RequestCallback): Promise<Result> {
     return this.get(['accounts'], callback);
   }
 
-  getAccount(accountID: string, callback: RequestCallback): Promise<any> {
+  getAccount(accountID: string, callback?: RequestCallback): Promise<Result> {
     return this.get(['accounts', accountID], callback);
   }
 
-  getAccountHistory(accountID: string, args: any, callback: RequestCallback): Promise<any> {
+  getAccountHistory(accountID: string, args: any, callback: RequestCallback): Promise<Result> {
     args = args || {}
 
     if (!callback && (typeof args === 'function')) {
@@ -95,7 +91,7 @@ export default class AuthenticatedClient extends PublicClient {
     return this.get(['accounts', accountID, 'ledger'], opts, callback);
   }
 
-  getAccountHolds(accountID : string, args : any, callback: RequestCallback) : Promise<any> {
+  getAccountHolds(accountID: string, args: any, callback: RequestCallback): Promise<Result> {
     var self = this;
 
     args = args || {}
@@ -107,106 +103,82 @@ export default class AuthenticatedClient extends PublicClient {
     var opts = { 'qs': args };
     return this.get(['accounts', accountID, 'holds'], opts, callback);
   }
-}
 
+  private placeOrder(params: any, callback: RequestCallback): Promise<Result> {
+    var requiredParams = ['size', 'side', 'product_id'];
 
-prototype.;
-
-prototype._placeOrder = function (params, callback) {
-  var self = this;
-
-  var requiredParams = ['size', 'side', 'product_id'];
-
-  if (params.type !== 'market') {
-    requiredParams.push('price');
-  }
-
-  _.forEach(requiredParams, function (param) {
-    if (params[param] === undefined) {
-      throw "`opts` must include param `" + param + "`";
+    if (params.type !== 'market') {
+      requiredParams.push('price');
     }
-  });
-  var opts = { 'body': params };
-  return prototype.post.call(self, ['orders'], opts, callback);
-};
 
-prototype.buy = function (params, callback) {
-  var self = this;
-  params.side = 'buy';
-  return self._placeOrder(params, callback);
-};
+    requiredParams.forEach((param) => {
+      if (params[param] === undefined) { throw "`opts` must include param `" + param + "`"; }
+    });
 
-prototype.sell = function (params, callback) {
-  var self = this;
-  params.side = 'sell';
-  return self._placeOrder(params, callback);
-};
-
-prototype.cancelOrder = function (orderID, callback) {
-  var self = this;
-
-  if (!callback && (typeof orderID === 'function')) {
-    callback = orderID;
-    callback(new Error('must provide an orderID or consider cancelOrders'));
-    return;
+    var opts = { 'body': params };
+    return this.post(['orders'], opts, callback);
   }
 
-  return prototype.delete.call(self, ['orders', orderID], callback);
-};
-
-prototype.cancelOrders = function (callback) {
-  var self = this;
-  return prototype.delete.call(self, ['orders'], callback);
-};
-
-// temp over ride public call to get Product Orderbook
-prototype.getProductOrderBook = function (args, productId, callback) {
-  var self = this;
-
-  args = args || {}
-  if (!callback && (typeof args === 'function')) {
-    callback = args;
-    args = {};
+  buy(params: any, callback: RequestCallback): Promise<Result> {
+    params.side = 'buy';
+    return this.placeOrder(params, callback);
   }
 
-  var opts = { 'qs': args };
-  return prototype.get.call(self, ['products', productId, 'book'], opts, callback);
-};
-
-
-prototype.cancelAllOrders = function (args, callback) {
-  var self = this;
-  var currentDeletedOrders = [];
-  var totalDeletedOrders = [];
-  var query = true;
-  var response;
-
-  args = args || {}
-  if (!callback && (typeof args === 'function')) {
-    callback = args;
-    args = {};
+  sell(params: any, callback: RequestCallback): Promise<Result> {
+    params.side = 'sell';
+    return this.placeOrder(params, callback);
   }
 
-  var opts = { 'qs': args };
+  cancelOrder(orderID: string, callback: RequestCallback): Promise<Result> {
 
-  async.doWhilst(
-    deleteOrders,
-    untilEmpty,
-    completed
-  );
+    if (!callback && (typeof orderID === 'function')) {
+      callback(new Error('must provide an orderID or consider cancelOrders'));
+      return;
+    }
 
-  function deleteOrders(done) {
-    prototype.delete.call(self, ['orders'], opts, function (err, resp, data) {
+    return this.delete(['orders', orderID], callback);
+  }
+
+  cancelOrders(callback: RequestCallback): Promise<Result> {
+    return this.delete(['orders'], callback);
+  }
+
+  getProductOrderBook(args: any, productId: string, callback?: RequestCallback): Promise<Result> {
+    //confused how this function was supposed to ever work without a productid
+    var args: any = args || {}
+
+    var opts = { 'qs': args };
+    return this.get(['products', productId, 'book'], opts, callback);
+  }
+
+  /*cancelAllOrders(argsOrCallback?: any | RequestCallback, callback?: RequestCallback) {
+    var currentDeletedOrders: any[] = [];
+    var totalDeletedOrders: any[] = [];
+    var query = true;
+    var response: any;
+
+    var args: any = argsOrCallback || {}
+    if (!callback && (typeof argsOrCallback === 'function')) {
+      callback = argsOrCallback;
+      args = {};
+    }
+
+    var opts = { 'qs': args };
+
+
+    this.delete(['orders'], opts, gron);
+
+    function gron(err: any, resp: any, data: any) {
 
       if (err) {
-        done(err);
+        callback(err);
         return;
       }
 
       if ((resp && resp.statusCode != 200) || !data) {
-        var err = new Error('Failed to cancel all orders');
+        err = new Error('Failed to cancel all orders');
         query = false;
-        done(err);
+        callback(err);
         return;
       }
 
@@ -214,84 +186,79 @@ prototype.cancelAllOrders = function (args, callback) {
       totalDeletedOrders = totalDeletedOrders.concat(currentDeletedOrders);
       response = resp;
 
-      done();
+      if (currentDeletedOrders.length > 0 && query) {
+        callback(err, response, totalDeletedOrders);
+      } else {
+
+      }
     });
-  }
 
-  function untilEmpty() {
-    return (currentDeletedOrders.length > 0 && query)
-  }
-
-  function completed(err) {
-    callback(err, response, totalDeletedOrders);
-  }
-};
-
-prototype.getOrders = function (args, callback) {
-  var self = this;
-
-  args = args || {}
-  if (!callback && (typeof args === 'function')) {
-    callback = args;
-    args = {};
-  }
-
-  var opts = { 'qs': args };
-  return prototype.get.call(self, ['orders'], opts, callback);
-};
-
-prototype.getOrder = function (orderID, callback) {
-  var self = this;
-
-  if (!callback && (typeof orderID === 'function')) {
-    callback = orderID;
-    callback(new Error('must provide an orderID or consider getOrders'));
-    return;
-  }
-
-  return prototype.get.call(self, ['orders', orderID], callback);
-};
-
-prototype.getFills = function (args, callback) {
-  var self = this;
-
-  args = args || {}
-  if (!callback && (typeof args === 'function')) {
-    callback = args;
-    args = {};
-  }
-
-  var opts = { 'qs': args };
-  return prototype.get.call(self, ['fills'], opts, callback);
-};
-
-prototype.deposit = function (params, callback) {
-  var self = this;
-  params.type = 'deposit';
-  return self._transferFunds(params, callback);
-};
-
-prototype.withdraw = function (params, callback) {
-  var self = this;
-  params.type = 'withdraw';
-  return self._transferFunds(params, callback);
-};
-
-prototype._transferFunds = function (params, callback) {
-  var self = this;
-  _.forEach(['type', 'amount', 'coinbase_account_id'], function (param) {
-    if (params[param] === undefined) {
-      throw "`opts` must include param `" + param + "`";
+    function untilEmpty() {
+      return (currentDeletedOrders.length > 0 && query)
     }
-  });
-  var opts = { 'body': params };
-  return prototype.post.call(self, ['transfers'], opts, callback);
-};
 
-});
+    function completed(err) {
+      callback(err, response, totalDeletedOrders);
+    }
+  }*/
 
-module.exports = exports = AuthenticatedClient;
+  getOrders(args: any, callback?: RequestCallback) {
+
+    args = args || {}
+    if (!callback && (typeof args === 'function')) {
+      callback = args;
+      args = {};
+    }
+
+    var opts = { 'qs': args };
+    return this.get(['orders'], opts, callback);
+  }
+
+  getOrder(orderID: string | RequestCallback, callback?: RequestCallback) {
+
+    if (!callback && (typeof orderID === 'function')) {
+      callback = orderID;
+      return callback(new Error('must provide an orderID or consider getOrders'));
+    }
+    //again typescript for some reason doesn't infer that this branch will never be reached while orderID is a RequestCallback
+    return this.get(['orders', <string>orderID], callback);
+  }
+
+  getFills(args: any, callback: RequestCallback) {
+
+    args = args || {}
+    if (!callback && (typeof args === 'function')) {
+      callback = args;
+      args = {};
+    }
+
+    var opts = { 'qs': args };
+    return this.get(['fills'], opts, callback);
+  }
+
+  deposit(params: any, callback: RequestCallback) {
+    params.type = 'deposit';
+    return this.transferFunds(params, callback);
+  }
+
+  withdraw(params: any, callback: RequestCallback) {
+    params.type = 'withdraw';
+    return this.transferFunds(params, callback);
+  }
+
+  private transferFunds(params: any, callback: RequestCallback) {
+    ['type', 'amount', 'coinbase_account_id'].forEach(function (param) {
+      if (params[param] === undefined) {
+        throw "`opts` must include param `" + param + "`";
+      }
+    });
+    var opts = { 'body': params };
+    return this.post(['transfers'], opts, callback);
+  }
+}
 
 export interface RequestCallback {
-  (err: any, response: any, data: any): void
+  (err: any, response?: any, data?: any): void
 }
+
+export interface Result { response: any, data: any }
