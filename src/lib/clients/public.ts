@@ -15,10 +15,11 @@ export default class PublicClient {
 
   private addHeaders(obj: any, additional?: any) {
     obj.headers = obj.headers || {};
-    obj['User-Agent'] = 'gdax-node-client';
-    obj['Accept'] = 'application/json';
-    obj['Content-Type'] = 'application/json';
-    Object.assign(obj, additional || {});
+    obj.headers['User-Agent'] = 'gdax-node-client';
+    obj.headers['Accept'] = 'application/json';
+    obj.headers['Content-Type'] = 'application/json';
+
+    Object.assign(obj.headers, additional || {});
     return obj;
   }
 
@@ -39,7 +40,7 @@ export default class PublicClient {
     //removed behavior: throw on no callback (unnecessary)
     opts.method = method.toUpperCase()
     opts.uri = this.makeAbsoluteURI(this.makeRelativeURI(uriParts));
-
+    
     this.addHeaders(opts);
 
     return new Promise(function (resolve, reject) {
@@ -49,9 +50,11 @@ export default class PublicClient {
         } catch (e) {
           data = null;
         }
+
         if (callback) {
           callback(err, response, data);
         }
+
         if (err) {
           reject(err);
         } else {
@@ -123,6 +126,7 @@ export default class PublicClient {
       }
 
       if (resp.statusCode !== 200) {
+        //console.log(resp);
         stream.emit('error', new Error('Encountered status code ' + resp.statusCode));
       }
 
@@ -141,7 +145,7 @@ export default class PublicClient {
       }
 
       this.fetchTrades(stream, tradesFrom + API_LIMIT, tradesTo, shouldStop);
-    });
+    }.bind(this));
   }
 
   getProductTradeStream(tradesFrom : number, tradesTo : number | ((trade : any)=>boolean)): Promise<any> {
@@ -161,7 +165,7 @@ export default class PublicClient {
         started = true;
         this.fetchTrades(rs, tradesFrom, tradesTo, shouldStop, 0);
       }
-    };
+    }.bind(this);
 
     return rs;
   }
