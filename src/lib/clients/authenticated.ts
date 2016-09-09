@@ -1,5 +1,5 @@
 ///<reference path="../typings/index.d.ts" />
-///<reference path="../types.d.ts" />
+////<reference path="../types.d.ts" />
 import crypto = require('crypto');
 import querystring = require('querystring');
 import request = require('request');
@@ -18,7 +18,7 @@ export default class AuthenticatedClient extends PublicClient {
     this.passphrase = passphrase;
   }
 
-  protected request(method: string, uriParts: string[], opts: Object, callback?: RequestCallback): Promise<Result> {
+  protected request(method: string, uriParts: (string | number)[], opts: Object, callback?: RequestCallback): Promise<Result> {
     //removed behavior: throw on no callback (unnecessary)
     opts.method = method.toUpperCase()
 
@@ -40,9 +40,9 @@ export default class AuthenticatedClient extends PublicClient {
         }
 
         if (err) {
-          reject(err);
+          reject({ err: err, response: response, data: data });
         } else {
-          resolve({ response: response, data: data });
+          resolve({ err: err, response: response, data: data });
         }
       });
     });
@@ -75,15 +75,15 @@ export default class AuthenticatedClient extends PublicClient {
     return this.get(['accounts'], callback);
   }
 
-  getAccount(accountID: string, callback?: RequestCallback): Promise<Result> {
+  getAccount(accountID: ID, callback?: RequestCallback): Promise<Result> {
     return this.get(['accounts', accountID], callback);
   }
 
-  getAccountHistory(accountID: string, args: any, callback: RequestCallback): Promise<Result> {
-    args = args || {}
+  getAccountHistory(accountID: ID, argsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<Result> {
+    var args = argsOrCallback || {}
 
-    if (!callback && (typeof args === 'function')) {
-      callback = args;
+    if (!callback && (typeof argsOrCallback === 'function')) {
+      callback = argsOrCallback;
       args = {};
     }
 
@@ -91,10 +91,9 @@ export default class AuthenticatedClient extends PublicClient {
     return this.get(['accounts', accountID, 'ledger'], opts, callback);
   }
 
-  getAccountHolds(accountID: string, args: any, callback: RequestCallback): Promise<Result> {
-    var self = this;
+  getAccountHolds(accountID: ID, argsOrCallback?: any, callback?: RequestCallback): Promise<Result> {
 
-    args = args || {}
+    var args = argsOrCallback || {}
     if (!callback && (typeof args === 'function')) {
       callback = args;
       args = {};
@@ -104,14 +103,14 @@ export default class AuthenticatedClient extends PublicClient {
     return this.get(['accounts', accountID, 'holds'], opts, callback);
   }
 
-  private placeOrder(params: any, callback: RequestCallback): Promise<Result> {
+  private placeOrder(params: buySellParams & { side: string }, callback?: RequestCallback): Promise<Result> {
     var requiredParams = ['size', 'side', 'product_id'];
 
     if (params.type !== 'market') {
       requiredParams.push('price');
     }
 
-    requiredParams.forEach((param) => {
+    requiredParams.forEach(param => {
       if (params[param] === undefined) { throw "`opts` must include param `" + param + "`"; }
     });
 
@@ -119,21 +118,21 @@ export default class AuthenticatedClient extends PublicClient {
     return this.post(['orders'], opts, callback);
   }
 
-  buy(params: any, callback: RequestCallback): Promise<Result> {
-    params.side = 'buy';
-    return this.placeOrder(params, callback);
+  buy(params: buySellParams, callback?: RequestCallback): Promise<Result> {
+    (<buySellParams & { side: string }>params).side = 'buy';
+    return this.placeOrder(<buySellParams & { side: string }>params, callback);
   }
 
-  sell(params: any, callback: RequestCallback): Promise<Result> {
-    params.side = 'sell';
-    return this.placeOrder(params, callback);
+  sell(params: buySellParams, callback?: RequestCallback): Promise<Result> {
+    (<buySellParams & { side: string }>params).side = 'sell';
+    return this.placeOrder(<buySellParams & { side: string }>params, callback);
   }
 
-  cancelOrder(orderID: string, callback: RequestCallback): Promise<Result> {
+  cancelOrder(orderID: ID, callback?: RequestCallback): Promise<Result> {
 
     if (!callback && (typeof orderID === 'function')) {
       callback(new Error('must provide an orderID or consider cancelOrders'));
-      return;
+      return Promise.reject<Result>({ err: new Error('must provide an orderID or consider cancelOrders'), response: null, data: null });
     }
 
     return this.delete(['orders', orderID], callback);
@@ -143,13 +142,13 @@ export default class AuthenticatedClient extends PublicClient {
     return this.delete(['orders'], callback);
   }
 
-  getProductOrderBook(args: any, productId: string, callback?: RequestCallback): Promise<Result> {
+  /*getProductOrderBook(args: any, productId: string, callback?: RequestCallback): Promise<Result> {
     //confused how this function was supposed to ever work without a productid
     var args: any = args || {}
 
     var opts = { 'qs': args };
     return this.get(['products', productId, 'book'], opts, callback);
-  }
+  }*/
 
   /*cancelAllOrders(argsOrCallback?: any | RequestCallback, callback?: RequestCallback) {
     var currentDeletedOrders: any[] = [];
@@ -261,4 +260,14 @@ export interface RequestCallback {
   (err: any, response?: any, data?: any): void
 }
 
-export interface Result { response: any, data: any }
+export interface buySellParams {
+  price: string,
+  size: string,
+  product_id: string,
+  type: string,
+  [index: string]: string
+}
+
+export interface Result { err: any, response: any, data: any }
+
+export type ID = string | number;

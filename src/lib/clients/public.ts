@@ -31,7 +31,7 @@ export default class PublicClient {
     return this.apiURI + relativeURI;
   }
 
-  protected request(method: string, uriParts: string[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> {
+  protected request(method: string, uriParts: (string|number)[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> {
     var opts = optsOrCallback || {};
     if (!callback && (typeof optsOrCallback === 'function')) {
       callback = optsOrCallback;
@@ -64,10 +64,10 @@ export default class PublicClient {
     });
   }
 
-  protected get(uriParts: string[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('get', uriParts, optsOrCallback, callback); }
-  protected post(uriParts: string[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('ppst', uriParts, optsOrCallback, callback); }
-  protected put(uriParts: string[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('put', uriParts, optsOrCallback, callback); }
-  protected delete(uriParts: string[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('delete', uriParts, optsOrCallback, callback); }
+  protected get(uriParts: (string|number)[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('get', uriParts, optsOrCallback, callback); }
+  protected post(uriParts: (string|number)[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('post', uriParts, optsOrCallback, callback); }
+  protected put(uriParts: (string|number)[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('put', uriParts, optsOrCallback, callback); }
+  protected delete(uriParts: (string|number)[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('delete', uriParts, optsOrCallback, callback); }
 
   getProducts(callback?: (err: any, response: any, data: any) => {}): Promise<any> {
     return this.get(['products'], callback);
@@ -197,3 +197,5 @@ export default class PublicClient {
 export interface RequestCallback {
   (err: any, response: any, data: any): void
 }
+
+export type AccountID = string | number;
