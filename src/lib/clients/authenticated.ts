@@ -4,6 +4,7 @@ import crypto = require('crypto');
 import querystring = require('querystring');
 import request = require('request');
 import PublicClient from './Public';
+import {Options as Options} from './Public';
 
 
 export default class AuthenticatedClient extends PublicClient {
@@ -18,7 +19,8 @@ export default class AuthenticatedClient extends PublicClient {
     this.passphrase = passphrase;
   }
 
-  protected request(method: string, uriParts: (string | number)[], opts: Object, callback?: RequestCallback): Promise<Result> {
+  protected request(method: string, uriParts: (string | number)[], opts: Options, callback: RequestCallback): Promise<Result> {
+    opts = opts || {};
     //removed behavior: throw on no callback (unnecessary)
     opts.method = method.toUpperCase()
 
@@ -26,15 +28,13 @@ export default class AuthenticatedClient extends PublicClient {
     opts.uri = this.makeAbsoluteURI(relativeURI);
 
     this.addHeaders(opts, this.getSignature(method, relativeURI, opts));
-
     return new Promise(function (resolve, reject) {
-      request(opts, function (err: any, response: any, data: any) {
+      request(<request.OptionsWithUri>opts, function (err: any, response: any, data: any) {
         try {
           data = JSON.parse(data);
         } catch (e) {
           data = null;
         }
-
         if (callback) {
           callback(err, response, data);
         }
@@ -72,11 +72,12 @@ export default class AuthenticatedClient extends PublicClient {
   }
 
   getAccounts(callback?: RequestCallback): Promise<Result> {
-    return this.get(['accounts'], callback);
+    return this.get(['accounts'], null, callback);
   }
 
   getAccount(accountID: ID, callback?: RequestCallback): Promise<Result> {
-    return this.get(['accounts', accountID], callback);
+    console.log(callback);
+    return this.get(['accounts', accountID], null, callback);
   }
 
   getAccountHistory(accountID: ID, argsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<Result> {
@@ -135,20 +136,27 @@ export default class AuthenticatedClient extends PublicClient {
       return Promise.reject<Result>({ err: new Error('must provide an orderID or consider cancelOrders'), response: null, data: null });
     }
 
-    return this.delete(['orders', orderID], callback);
+    return this.delete(['orders', orderID], null, callback);
   }
 
-  cancelOrders(callback: RequestCallback): Promise<Result> {
-    return this.delete(['orders'], callback);
+  cancelOrders(callback?: RequestCallback): Promise<Result> {
+    return this.delete(['orders'], null, callback);
   }
 
-  /*getProductOrderBook(args: any, productId: string, callback?: RequestCallback): Promise<Result> {
-    //confused how this function was supposed to ever work without a productid
+  //this function api should probably be changed
+  getProductOrderBook(args: any, productId: string | RequestCallback, callback?: RequestCallback): Promise<Result> {
     var args: any = args || {}
-
+    
     var opts = { 'qs': args };
-    return this.get(['products', productId, 'book'], opts, callback);
-  }*/
+    
+    if (typeof productId !== 'string') {
+      var err = new Error('need to specify a productId!');
+      callback(err);
+      return Promise.reject<Result>({err: err});
+    } else {
+      return this.get(['products', productId, 'book'], opts, callback);
+    }
+  }
 
   /*cancelAllOrders(argsOrCallback?: any | RequestCallback, callback?: RequestCallback) {
     var currentDeletedOrders: any[] = [];
@@ -201,9 +209,9 @@ export default class AuthenticatedClient extends PublicClient {
     }
   }*/
 
-  getOrders(args: any, callback?: RequestCallback) {
+  getOrders(argsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<Result> {
 
-    args = args || {}
+    var args = argsOrCallback || {}
     if (!callback && (typeof args === 'function')) {
       callback = args;
       args = {};
@@ -213,17 +221,11 @@ export default class AuthenticatedClient extends PublicClient {
     return this.get(['orders'], opts, callback);
   }
 
-  getOrder(orderID: string | RequestCallback, callback?: RequestCallback) {
-
-    if (!callback && (typeof orderID === 'function')) {
-      callback = orderID;
-      return callback(new Error('must provide an orderID or consider getOrders'));
-    }
-    //again typescript for some reason doesn't infer that this branch will never be reached while orderID is a RequestCallback
-    return this.get(['orders', <string>orderID], callback);
+  getOrder(orderID: ID, callback?: RequestCallback): Promise<Result> {
+    return this.get(['orders', orderID], null, callback);
   }
 
-  getFills(args: any, callback: RequestCallback) {
+  getFills(args?: any | RequestCallback, callback?: RequestCallback): Promise<Result> {
 
     args = args || {}
     if (!callback && (typeof args === 'function')) {
@@ -235,12 +237,12 @@ export default class AuthenticatedClient extends PublicClient {
     return this.get(['fills'], opts, callback);
   }
 
-  deposit(params: any, callback: RequestCallback) {
+  deposit(params: any, callback?: RequestCallback): Promise<Result> {
     params.type = 'deposit';
     return this.transferFunds(params, callback);
   }
 
-  withdraw(params: any, callback: RequestCallback) {
+  withdraw(params: any, callback?: RequestCallback): Promise<Result> {
     params.type = 'withdraw';
     return this.transferFunds(params, callback);
   }

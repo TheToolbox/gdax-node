@@ -11,7 +11,7 @@ var EXCHANGE_API_URL = 'https://api.gdax.com';
 
 var authClient = new Gdax.AuthenticatedClient(key, secret, passphrase);
 
-test('._getSignature', function() {
+test('.getSignature', function() {
   var method = 'PUT';
   var relativeURI = '/orders';
   var opts = {
@@ -19,7 +19,7 @@ test('._getSignature', function() {
     uri : 'https://api.gdax.com/orders'
   }
   
-  var sig = authClient._getSignature(method, relativeURI, opts)
+  var sig = authClient.getSignature(method, relativeURI, opts)
 
   assert.equal(sig['CB-ACCESS-KEY'], key);
   assert.equal(sig['CB-ACCESS-PASSPHRASE'], passphrase);

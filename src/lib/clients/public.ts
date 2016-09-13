@@ -23,7 +23,7 @@ export default class PublicClient {
     return obj;
   }
 
-  protected makeRelativeURI(parts: string[]) {
+  protected makeRelativeURI(parts: (string | number)[]) {
     return '/' + parts.join('/');
   }
 
@@ -31,20 +31,17 @@ export default class PublicClient {
     return this.apiURI + relativeURI;
   }
 
-  protected request(method: string, uriParts: (string|number)[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> {
-    var opts = optsOrCallback || {};
-    if (!callback && (typeof optsOrCallback === 'function')) {
-      callback = optsOrCallback;
-      opts = {};
-    }
+  protected request(method: string, uriParts: (string | number)[], opts: Options, callback: RequestCallback): Promise<any> {
+    opts = opts || {};
+
     //removed behavior: throw on no callback (unnecessary)
     opts.method = method.toUpperCase()
     opts.uri = this.makeAbsoluteURI(this.makeRelativeURI(uriParts));
-    
+
     this.addHeaders(opts);
 
     return new Promise(function (resolve, reject) {
-      request(opts, function (err: any, response: any, data: any) {
+      request(<request.UriOptions>opts, function (err: any, response: any, data: any) {
         try {
           data = JSON.parse(data);
         } catch (e) {
@@ -64,13 +61,13 @@ export default class PublicClient {
     });
   }
 
-  protected get(uriParts: (string|number)[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('get', uriParts, optsOrCallback, callback); }
-  protected post(uriParts: (string|number)[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('post', uriParts, optsOrCallback, callback); }
-  protected put(uriParts: (string|number)[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('put', uriParts, optsOrCallback, callback); }
-  protected delete(uriParts: (string|number)[], optsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<any> { return this.request('delete', uriParts, optsOrCallback, callback); }
+  protected get(uriParts: (string | number)[], opts: Options, callback: RequestCallback): Promise<any> { return this.request('get', uriParts, opts, callback); }
+  protected post(uriParts: (string | number)[], opts: Options, callback: RequestCallback): Promise<any> { return this.request('post', uriParts, opts, callback); }
+  protected put(uriParts: (string | number)[], opts: Options, callback: RequestCallback): Promise<any> { return this.request('put', uriParts, opts, callback); }
+  protected delete(uriParts: (string | number)[], opts: Options, callback: RequestCallback): Promise<any> { return this.request('delete', uriParts, opts, callback); }
 
   getProducts(callback?: (err: any, response: any, data: any) => {}): Promise<any> {
-    return this.get(['products'], callback);
+    return this.get(['products'], null, callback);
   }
 
   getProductOrderBook(args: any | RequestCallback, callback?: RequestCallback): Promise<any> {
@@ -85,7 +82,7 @@ export default class PublicClient {
   }
 
   getProductTicker(callback?: RequestCallback): Promise<any> {
-    return this.get(['products', this.productID, 'ticker'], callback);
+    return this.get(['products', this.productID, 'ticker'], null, callback);
   }
 
   getProductTrades(args: any | RequestCallback, callback?: RequestCallback): Promise<any> {
@@ -100,7 +97,7 @@ export default class PublicClient {
     return this.get(['products', this.productID, 'trades'], opts, callback);
   }
 
-  private fetchTrades(stream : any, tradesFrom: number, tradesTo: number, shouldStop ?: (trade : any) => boolean) {
+  private fetchTrades(stream: any, tradesFrom: number, tradesTo: number, shouldStop?: (trade: any) => boolean) {
     var after = tradesFrom + API_LIMIT + 1;
     var loop = true;
 
@@ -147,12 +144,12 @@ export default class PublicClient {
     }.bind(this));
   }
 
-  getProductTradeStream(tradesFrom : number, tradesTo : number | ((trade : any)=>boolean)): stream.Readable {
-    var shouldStop : (trade : any)=>boolean = null;
+  getProductTradeStream(tradesFrom: number, tradesTo: number | ((trade: any) => boolean)): stream.Readable {
+    var shouldStop: (trade: any) => boolean = null;
 
     if (typeof tradesTo === 'function') {
       //not sure why TS isn't correctly inferring the type guard
-      shouldStop = <(trade : any) => boolean> tradesTo;
+      shouldStop = <(trade: any) => boolean>tradesTo;
       tradesTo = null;
     }
 
@@ -182,15 +179,15 @@ export default class PublicClient {
   }
 
   getProduct24HrStats(callback?: RequestCallback): Promise<any> {
-    return this.get(['products', this.productID, 'stats'], callback);
+    return this.get(['products', this.productID, 'stats'], {}, callback);
   }
 
   getCurrencies(callback?: RequestCallback): Promise<any> {
-    return this.get(['currencies'], callback);
+    return this.get(['currencies'], null, callback);
   }
 
   getTime(callback?: RequestCallback): Promise<any> {
-    return this.get(['time'], callback);
+    return this.get(['time'], null, callback);
   }
 }
 
@@ -199,3 +196,9 @@ export interface RequestCallback {
 }
 
 export type AccountID = string | number;
+
+export type Options = request.CoreOptions & {uri?:string}
+
+function isCallback(optsOrCallback: any | RequestCallback, cb?: RequestCallback): optsOrCallback is RequestCallback {
+  return (!cb && (typeof optsOrCallback === 'function'));
+}
