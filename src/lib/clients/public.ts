@@ -108,7 +108,7 @@ export default class PublicClient {
 
     var opts = { before: tradesFrom, after: after, limit: API_LIMIT };
 
-    this.getProductTrades(opts, function (err: any, resp: any, data: any) {
+    this.getProductTrades(opts, (err: any, resp: any, data: any) => {
       if (err) {
         stream.emit('error', err);
         return;
@@ -141,7 +141,7 @@ export default class PublicClient {
       }
 
       this.fetchTrades(stream, tradesFrom + API_LIMIT, tradesTo, shouldStop);
-    }.bind(this));
+    });
   }
 
   getProductTradeStream(tradesFrom: number, tradesTo: number | ((trade: any) => boolean)): stream.Readable {
@@ -156,12 +156,12 @@ export default class PublicClient {
     var rs = new stream.Readable({ objectMode: true });
     var started = false;
 
-    rs._read = function () {
+    rs._read = () => {
       if (!started) {
         started = true;
         this.fetchTrades(rs, tradesFrom, tradesTo, shouldStop, 0);
       }
-    }.bind(this);
+    };
 
     return rs;
   }
