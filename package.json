@@ -18,6 +18,11 @@
       "email": "miha@rebernik.info",
       "name": "Miha Rebernik",
       "url": "http://miha.rebernik.info"
+    },
+    {
+      "email": "jason@oettinger.email",
+      "name": "Jason 'Toolbox' Oettinger",
+      "url": "http://oett.io"
     }
   ],
   "dependencies": {
