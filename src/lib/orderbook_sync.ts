@@ -1,140 +1,106 @@
 ///<reference path="typings/index.d.ts" />
-import WebsocketClient = require('./clients/websocket');
-import PublicClient = require('./clients/public');
-import AuthenticatedClient = require('./clients/authenticated');
-import Orderbook = require('./orderbook');
+import {default as WebsocketClient} from './clients/websocket';
+import {default as PublicClient} from './clients/public';
+import {default as AuthenticatedClient} from './clients/authenticated';
+import {default as Orderbook} from './orderbook';
 import util = require('util');
 
-export default class OrderbookSync {
-  productID : string;
-  apiURI : string;
-  websocketURI: string;
+export default class OrderbookSync extends WebsocketClient {
+  //productID: string;
+  apiURI: string;
+  //websocketURI: string;
+  book: Orderbook;
+  publicClient: PublicClient;
   authenticatedClient: AuthenticatedClient;
 
-  private queue = [];
+  private queue: any[] = [];//TODO TYPE
   private sequence = -1;
 
-  constructor(productID, apiURI, websocketURI, authenticatedClient) {
-    this.productID = productID || 'BTC-USD';
+  constructor(productID: string, apiURI: string, websocketURI: string, authenticatedClient: AuthenticatedClient) {
+    super(productID || 'BTC-USD', websocketURI || 'wss://ws-feed.gdax.com')
+    //this.productID = productID || 'BTC-USD';
     this.apiURI = apiURI || 'https://api.gdax.com';
-    this.websocketURI = websocketURI || 'wss://ws-feed.gdax.com';
+    //this.websocketURI = websocketURI || 'wss://ws-feed.gdax.com';
     this.authenticatedClient = authenticatedClient;
 
     WebsocketClient.call(this, this.productID, this.websocketURI);
     this.loadOrderbook();
   }
-}
 
-
-// Orderbook syncing
-var OrderbookSync = function (productID, apiURI, websocketURI, authenticatedClient) {
-
-  self.productID = productID || 'BTC-USD';
-  self.apiURI = apiURI || 'https://api.gdax.com';
-  self.websocketURI = websocketURI || 'wss://ws-feed.gdax.com';
-  self.authenticatedClient = authenticatedClient;
-
-  self._queue = [];
-  self._sequence = -1;
-
-  WebsocketClient.call(self, self.productID, self.websocketURI);
-  self.loadOrderbook();
-};
-
-util.inherits(OrderbookSync, WebsocketClient);
-
-_.assign(OrderbookSync.prototype, new function () {
-  var prototype = this;
-
-  prototype.onMessage = function (data) {
-    var self = this;
-    data = JSON.parse(data);
-
-    if (self._sequence === -1) {
+  onMessage(data: string) {/*TODO handle errors*/
+    if (this.sequence === -1) {
       // Orderbook snapshot not loaded yet
-      self._queue.push(data);
+      this.queue.push(JSON.parse(data));
     } else {
-      self.processMessage(data);
+      this.processMessage(JSON.parse(data));
     }
-  };
+  }
 
-  prototype.loadOrderbook = function () {
-    var self = this;
-    var bookLevel = 3;
-    var args = { 'level': bookLevel };
+  loadOrderbook(): Promise<any> {
+    var bookArgs = { 'level': 3 };
 
-    self.book = new Orderbook();
+    this.book = new Orderbook();
 
-    if (self.authenticatedClient) {
-      self.authenticatedClient.getProductOrderBook(args, self.productID, cb);
+    if (this.authenticatedClient) {//note callback guaranteed to evaluate before promise resolves
+      return this.authenticatedClient.getProductOrderBook(bookArgs, this.productID, this.cb.bind(this));
+    } else {
+      if (!this.publicClient) {
+        this.publicClient = new PublicClient(this.productID, this.apiURI);
+      }
+      return this.publicClient.getProductOrderBook(bookArgs, this.cb.bind(this));
     }
-    else {
-      if (!self.publicClient) {
-        self.publicClient = new PublicClient(self.productID, self.apiURI);
-      }
-      self.publicClient.getProductOrderBook(args, cb);
-    }
+  }
 
-    function cb(err, response, body) {
-      if (err) {
-        throw 'Failed to load orderbook: ' + err;
-      }
+  private cb(err: Error, response: any, body: any) {
+    if (err) { throw 'Failed to load orderbook: ' + err; }
+    if (response.statusCode !== 200) { throw 'Failed to load orderbook: ' + response.statusCode; }
 
-      if (response.statusCode !== 200) {
-        throw 'Failed to load orderbook: ' + response.statusCode;
-      }
+    var data = JSON.parse(response.body);
+    this.book.state(data);
 
-      var data = JSON.parse(response.body);
-      self.book.state(data);
+    this.sequence = data.sequence;
+    this.queue.forEach(this.processMessage.bind(this));
+    this.queue = [];
+  }
 
-      self._sequence = data.sequence;
-      _.forEach(self._queue, self.processMessage.bind(self));
-      self._queue = [];
-    };
-  };
 
-  prototype.processMessage = function (data) {
-    var self = this;
-
-    if (self._sequence == -1) {
+  processMessage(data: any) {//TODO add more specfic typing
+    if (this.sequence == -1) {
       // Resync is in process
       return;
     }
-    if (data.sequence <= self._sequence) {
+    if (data.sequence <= this.sequence) {
       // Skip this one, since it was already processed
       return;
     }
 
-    if (data.sequence != self._sequence + 1) {
+    if (data.sequence != this.sequence + 1) {
       // Dropped a message, start a resync process
-      self._queue = [];
-      self._sequence = -1;
+      this.queue = [];
+      this.sequence = -1;
 
-      self.loadOrderbook();
+      this.loadOrderbook();
       return;
     }
 
-    self._sequence = data.sequence;
+    this.sequence = data.sequence;
 
     switch (data.type) {
       case 'open':
-        self.book.add(data);
+        this.book.add(data);
         break;
 
       case 'done':
-        self.book.remove(data.order_id);
+        this.book.remove(data.order_id);
         break;
 
       case 'match':
-        self.book.match(data);
+        this.book.match(data);
         break;
 
       case 'change':
-        self.book.change(data);
+        this.book.change(data);
         break;
     }
-  };
-
-});
-
-module.exports = exports = OrderbookSync;
+  }
+}
