@@ -1,15 +1,33 @@
-var WebsocketClient = require('./clients/websocket.js');
-var PublicClient = require('./clients/public.js');
-var Orderbook = require('./orderbook.js');
-var util = require('util');
-var _ = {
-  forEach: require('lodash.foreach'),
-  assign: require('lodash.assign'),
-};
+///<reference path="typings/index.d.ts" />
+import WebsocketClient = require('./clients/websocket');
+import PublicClient = require('./clients/public');
+import AuthenticatedClient = require('./clients/authenticated');
+import Orderbook = require('./orderbook');
+import util = require('util');
+
+export default class OrderbookSync {
+  productID : string;
+  apiURI : string;
+  websocketURI: string;
+  authenticatedClient: AuthenticatedClient;
+
+  private queue = [];
+  private sequence = -1;
+
+  constructor(productID, apiURI, websocketURI, authenticatedClient) {
+    this.productID = productID || 'BTC-USD';
+    this.apiURI = apiURI || 'https://api.gdax.com';
+    this.websocketURI = websocketURI || 'wss://ws-feed.gdax.com';
+    this.authenticatedClient = authenticatedClient;
+
+    WebsocketClient.call(this, this.productID, this.websocketURI);
+    this.loadOrderbook();
+  }
+}
+
 
 // Orderbook syncing
-var OrderbookSync = function(productID, apiURI, websocketURI, authenticatedClient) {
-  var self = this;
+var OrderbookSync = function (productID, apiURI, websocketURI, authenticatedClient) {
 
   self.productID = productID || 'BTC-USD';
   self.apiURI = apiURI || 'https://api.gdax.com';
@@ -25,14 +43,14 @@ var OrderbookSync = function(productID, apiURI, websocketURI, authenticatedClien
 
 util.inherits(OrderbookSync, WebsocketClient);
 
-_.assign(OrderbookSync.prototype, new function() {
+_.assign(OrderbookSync.prototype, new function () {
   var prototype = this;
 
-  prototype.onMessage = function(data) {
+  prototype.onMessage = function (data) {
     var self = this;
     data = JSON.parse(data);
 
-    if (self._sequence ===  -1) {
+    if (self._sequence === -1) {
       // Orderbook snapshot not loaded yet
       self._queue.push(data);
     } else {
@@ -40,7 +58,7 @@ _.assign(OrderbookSync.prototype, new function() {
     }
   };
 
-  prototype.loadOrderbook = function() {
+  prototype.loadOrderbook = function () {
     var self = this;
     var bookLevel = 3;
     var args = { 'level': bookLevel };
@@ -75,7 +93,7 @@ _.assign(OrderbookSync.prototype, new function() {
     };
   };
 
-  prototype.processMessage = function(data) {
+  prototype.processMessage = function (data) {
     var self = this;
 
     if (self._sequence == -1) {

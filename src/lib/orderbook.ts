@@ -1,53 +1,48 @@
+///<reference path="typings/index.d.ts" />
 var RBTree = require('bintrees').RBTree;
 var num = require('num');
 var assert = require('assert');
-var _ = {assign: require('lodash.assign')}
 
-var Orderbook = function() {
-  var self = this;
+export default class Orderbook {
+  private ordersByID: { [index: string]: Order };
+  private bids: RBTree<Order>;
+  private asks: RBTree<Order>;
 
-  // Orders hashed by ID
-  self._ordersByID = {};
+  constructor() {
+    this.ordersByID = {};
+    this.bids = new RBTree(Orderbook.compare);
+    this.asks = new RBTree(Orderbook.compare);
+  }
 
-  self._bids = new RBTree(function(a, b) {
+  private static compare(a: Num, b: Num) {
     return a.price.cmp(b.price);
-  });
+  }
 
-  self._asks = new RBTree(function(a, b) {
-    return a.price.cmp(b.price);
-  });
-};
+  private getTree(side: string): RBTree<Order> {
+    return side === 'buy' ? this.bids : this.asks;
+  }
 
-_.assign(Orderbook.prototype, new function() {
-  var prototype = this;
-
-  prototype._getTree = function(side) {
-    return side == 'buy' ? this._bids : this._asks;
-  };
-
-  prototype.state = function(book) {
-    var self = this;
-
+  state(book?: Book) {
     if (book) {
 
-      book.bids.forEach(function(order) {
+      book.bids.forEach(function (order) {
         order = {
           id: order[2],
           side: 'buy',
           price: num(order[0]),
           size: num(order[1])
         }
-        self.add(order);
+        this.add(order);
       });
 
-      book.asks.forEach(function(order) {
+      book.asks.forEach(function (order) {
         order = {
           id: order[2],
           side: 'sell',
           price: num(order[0]),
           size: num(order[1])
         }
-        self.add(order);
+        this.add(order);
       });
 
     } else {
@@ -57,28 +52,27 @@ _.assign(Orderbook.prototype, new function() {
         bids: []
       };
 
-      self._bids.reach(function(bid) {
-        bid.orders.forEach(function(order) {
+      this.bids.reach(function (bid) {
+        bid.orders.forEach(function (order) {
           book.bids.push(order);
         });
       });
 
-      self._asks.each(function(ask) {
-        ask.orders.forEach(function(order) {
+      this.asks.each(function (ask) {
+        ask.orders.forEach(function (order) {
           book.asks.push(order);
         });
       });
 
       return book;
     }
-  };
+  }
 
-  prototype.get = function(orderId) {
-    return this._ordersByID[orderId]
-  };
+  get(orderId: string) {
+    return this.ordersByID[orderId]
+  }
 
-  prototype.add = function(order) {
-    var self = this;
+  add(order: Order) {
 
     order = {
       id: order.order_id || order.id,
@@ -87,8 +81,8 @@ _.assign(Orderbook.prototype, new function() {
       size: num(order.size || order.remaining_size),
     };
 
-    var tree = self._getTree(order.side);
-    var node = tree.find({price: order.price});
+    var tree = this.getTree(order.side);
+    var node = tree.find({ price: order.price });
 
     if (!node) {
       node = {
@@ -99,19 +93,18 @@ _.assign(Orderbook.prototype, new function() {
     }
 
     node.orders.push(order);
-    self._ordersByID[order.id] = order;
-  };
+    this.ordersByID[order.id] = order;
+  }
 
-  prototype.remove = function(orderId) {
-    var self = this;
-    var order = self.get(orderId);
+  remove(orderId: string) {
+    var order = this.get(orderId);
 
     if (!order) {
       return;
     }
 
-    var tree = self._getTree(order.side);
-    var node = tree.find({price: order.price});
+    var tree = this.getTree(order.side);
+    var node = tree.find({ price: order.price });
     assert(node);
     var orders = node.orders;
 
@@ -121,39 +114,36 @@ _.assign(Orderbook.prototype, new function() {
       tree.remove(node);
     }
 
-    delete self._ordersByID[order.id];
-  };
+    delete this.ordersByID[order.id];
+  }
 
-  prototype.match = function(match) {
-    var self = this;
-
+  match(match) {
     var size = num(match.size);
     var price = num(match.price);
-    var tree = self._getTree(match.side);
-    var node = tree.find({price: price});
+    var tree = this.getTree(match.side);
+    var node = tree.find({ price: price });
     assert(node);
 
     var order = node.orders[0];
     assert.equal(order.id, match.maker_order_id);
 
     order.size = order.size.sub(size);
-    self._ordersByID[order.id] = order;
+    this.ordersByID[order.id] = order;
 
     assert(order.size >= 0);
 
     if (order.size.eq(0)) {
-      self.remove(order.id);
+      this.remove(order.id);
     }
-  };
+  }
 
-  prototype.change = function(change) {
-    var self = this;
+  change(change) {
 
     var size = num(change.new_size);
     var price = num(change.price);
-    var order = self.get(change.order_id)
-    var tree = self._getTree(change.side);
-    var node = tree.find({price: price});
+    var order = this.get(change.order_id)
+    var tree = this.getTree(change.side);
+    var node = tree.find({ price: price });
 
     if (!node || node.orders.indexOf(order) < 0) {
       return;
@@ -163,14 +153,37 @@ _.assign(Orderbook.prototype, new function() {
 
     var newSize = parseFloat(order.size);
     var oldSize = parseFloat(change.old_size);
-    
+
     assert.equal(oldSize, newSize);
 
     nodeOrder.size = size;
-    self._ordersByID[nodeOrder.id] = nodeOrder;
-  };
+    this.ordersByID[nodeOrder.id] = nodeOrder;
+  }
+}
 
-});
+export type Order = {
+  id?: string,
+  order_id?: string,
+  side: 'buy' | 'sell',
+  price: Num | number,
+  size?: Num | number,
+  remaining_size?: Num | number
+};
+export type Num = any;
+type RBTree<T> = {
+  insert: (item: T) => void,
+  remove: (item: T) => void,
+  size: number,
+  clear(): () => void,
+  find: (item: T) => T,
+  findIter: (item: T) => Iterator<T>,
+  lowerBound: (item: T) => Iterator<T>,
+  upperBound: (item: T) => Iterator<T>,
+  min: () => T,
+  max: () => T,
+  each: (f: (item: T) => void) => void,
+  reach: (f: (item: T) => void) => void,
+  iterator(): () => { next(): Iterator<T>, prev(): Iterator<T> }
+};
+export type Book = any;
 
-
-module.exports = exports = Orderbook;
