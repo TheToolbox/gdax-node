@@ -5,8 +5,8 @@ var assert = require('assert');
 
 export default class Orderbook {
   private ordersByID: { [index: string]: Order };
-  private bids: RBTree<Order>;
-  private asks: RBTree<Order>;
+  private bids: RBTree<any>;//TODO better typing
+  private asks: RBTree<any>;
 
   constructor() {
     this.ordersByID = {};
@@ -18,14 +18,14 @@ export default class Orderbook {
     return a.price.cmp(b.price);
   }
 
-  private getTree(side: string): RBTree<Order> {
+  private getTree(side: string) {
     return side === 'buy' ? this.bids : this.asks;
   }
 
   state(book?: Book) {
     if (book) {
 
-      book.bids.forEach(function (order) {
+      book.bids.forEach(function (order: any) {//TODO better typing
         order = {
           id: order[2],
           side: 'buy',
@@ -35,7 +35,7 @@ export default class Orderbook {
         this.add(order);
       });
 
-      book.asks.forEach(function (order) {
+      book.asks.forEach(function (order: any) {//TODO better typing
         order = {
           id: order[2],
           side: 'sell',
@@ -53,13 +53,13 @@ export default class Orderbook {
       };
 
       this.bids.reach(function (bid) {
-        bid.orders.forEach(function (order) {
+        bid.orders.forEach(function (order: any) {
           book.bids.push(order);
         });
       });
 
       this.asks.each(function (ask) {
-        ask.orders.forEach(function (order) {
+        ask.orders.forEach(function (order: any) {
           book.asks.push(order);
         });
       });
@@ -117,7 +117,7 @@ export default class Orderbook {
     delete this.ordersByID[order.id];
   }
 
-  match(match) {
+  match(match: any) {//TODO better typing
     var size = num(match.size);
     var price = num(match.price);
     var tree = this.getTree(match.side);
@@ -137,7 +137,7 @@ export default class Orderbook {
     }
   }
 
-  change(change) {
+  change(change: any) {//TODO better typing
 
     var size = num(change.new_size);
     var price = num(change.price);
