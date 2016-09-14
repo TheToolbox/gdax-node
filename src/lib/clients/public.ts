@@ -159,7 +159,7 @@ export default class PublicClient {
     rs._read = () => {
       if (!started) {
         started = true;
-        this.fetchTrades(rs, tradesFrom, tradesTo, shouldStop, 0);
+        this.fetchTrades(rs, tradesFrom, <number>tradesTo, shouldStop);
       }
     };
 

@@ -1,11 +1,11 @@
 ///<reference path="../typings/index.d.ts" />
 import events = require('events');
-import Websocket = require('ws');
+var Websocket = require('ws');
 
 export default class WebsocketClient extends events.EventEmitter {
   productID: string;
   websocketURI: string;
-  private socket: Websocket;
+  private socket: any;//TODO import Websocket appropriately and re-type this
   private pinger: NodeJS.Timer;
 
   constructor(productID : string, websocketURI : string) {
