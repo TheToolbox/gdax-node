@@ -1,6 +1,6 @@
 {
   "name": "gdax",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "author": "Coinbase",
   "bugs": "https://github.com/coinbase/gdax-node/issues",
   "contributors": [
@@ -60,12 +60,9 @@
   },
   "scripts": {
     "prepublish": "npm test && npm run compile",
-
     "pretest": "npm run compile",
     "test": "mocha --ui qunit --reporter list tests/*.js",
     "posttest": "npm run clean",
-
-
     "compile": "tsc",
     "clean": "rm -r lib && rm index.js && rm index.d.ts"
   },
