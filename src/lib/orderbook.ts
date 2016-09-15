@@ -33,7 +33,7 @@ export default class Orderbook {
           size: num(order[1])
         }
         this.add(order);
-      });
+      }.bind(this));
 
       book.asks.forEach(function (order: any) {//TODO better typing
         order = {
@@ -43,7 +43,7 @@ export default class Orderbook {
           size: num(order[1])
         }
         this.add(order);
-      });
+      }.bind(this));
 
     } else {
 

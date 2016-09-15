@@ -76,7 +76,6 @@ export default class AuthenticatedClient extends PublicClient {
   }
 
   getAccount(accountID: ID, callback?: RequestCallback): Promise<Result> {
-    console.log(callback);
     return this.get(['accounts', accountID], null, callback);
   }
 
@@ -132,7 +131,7 @@ export default class AuthenticatedClient extends PublicClient {
   cancelOrder(orderID: ID, callback?: RequestCallback): Promise<Result> {
 
     if (!callback && (typeof orderID === 'function')) {
-      callback(new Error('must provide an orderID or consider cancelOrders'));
+      (<any>orderID)(new Error('must provide an orderID or consider cancelOrders'));
       return Promise.reject<Result>({ err: new Error('must provide an orderID or consider cancelOrders'), response: null, data: null });
     }
 
@@ -146,21 +145,20 @@ export default class AuthenticatedClient extends PublicClient {
   //this function api should probably be changed
   getProductOrderBook(args: any, productId: string | RequestCallback, callback?: RequestCallback): Promise<Result> {
     var args: any = args || {}
-    
+
     var opts = { 'qs': args };
-    
+
     if (typeof productId !== 'string') {
       var err = new Error('need to specify a productId!');
       callback(err);
-      return Promise.reject<Result>({err: err});
+      return Promise.reject<Result>({ err: err });
     } else {
       return this.get(['products', productId, 'book'], opts, callback);
     }
   }
 
-  /*cancelAllOrders(argsOrCallback?: any | RequestCallback, callback?: RequestCallback) {
-    var currentDeletedOrders: any[] = [];
-    var totalDeletedOrders: any[] = [];
+  cancelAllOrders(argsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<Result> {
+    var deletedOrders: any[] = [];
     var query = true;
     var response: any;
 
@@ -172,42 +170,30 @@ export default class AuthenticatedClient extends PublicClient {
 
     var opts = { 'qs': args };
 
+    return this.delete(['orders'], opts, null)
+      .then(loopIfNotFinished.bind(this));
 
-    this.delete(['orders'], opts, gron);
-
-    function gron(err: any, resp: any, data: any) {
-
-      if (err) {
-        callback(err);
-        return;
+    function loopIfNotFinished(result: Result) {
+      if (result.err) { callback(result.err); throw result.err; }
+      if ((result.response && result.response.statusCode !== 200) || !result.data) {
+        result.err = new Error('Failed to cancel all orders');
+        callback(result.err);
+        throw result.err;
       }
-
-      if ((resp && resp.statusCode != 200) || !data) {
-        err = new Error('Failed to cancel all orders');
-        query = false;
-        callback(err);
-        return;
-      }
-
-      currentDeletedOrders = data;
-      totalDeletedOrders = totalDeletedOrders.concat(currentDeletedOrders);
-      response = resp;
-
-      if (currentDeletedOrders.length > 0 && query) {
-        callback(err, response, totalDeletedOrders);
+      if (result.data.length > 0) {
+        deletedOrders = deletedOrders.concat(result.data);
+        response = result.response;
+        return this.delete(['orders'], opts, null).then(loopIfNotFinished.bind(this));
       } else {
-
+        callback(null, response, deletedOrders);
+        return {
+          err: null,
+          response: response,
+          data: deletedOrders
+        };
       }
-    });
-
-    function untilEmpty() {
-      return (currentDeletedOrders.length > 0 && query)
     }
-
-    function completed(err) {
-      callback(err, response, totalDeletedOrders);
-    }
-  }*/
+  }
 
   getOrders(argsOrCallback?: any | RequestCallback, callback?: RequestCallback): Promise<Result> {
 
@@ -222,6 +208,10 @@ export default class AuthenticatedClient extends PublicClient {
   }
 
   getOrder(orderID: ID, callback?: RequestCallback): Promise<Result> {
+    if (!callback && (typeof orderID === 'function')) {
+      (<any>orderID)(new Error('You must provide an orderID'));
+      return Promise.reject<Result>({ err: new Error('You must provide an orderID') })
+    }
     return this.get(['orders', orderID], null, callback);
   }
 

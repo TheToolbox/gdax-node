@@ -64,7 +64,7 @@
     "url": "git://github.com/coinbase/gdax-node.git"
   },
   "scripts": {
-    "test": "tsc && mocha --ui qunit --bail --reporter list tests/*.js && rm -r lib && rm index.js && rm index.d.ts",
+    "test": "tsc && mocha --ui qunit --reporter list tests/*.js && rm -r lib && rm index.js && rm index.d.ts",
     "compile": "tsc"
   },
   "typescript": {}
