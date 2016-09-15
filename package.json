@@ -26,16 +26,16 @@
     }
   ],
   "dependencies": {
-    "bintrees": "1.0.0",
-    "num": "0.2.1",
-    "request": "2.74.0",
+    "bintrees": "^1.0.1",
+    "num": "^0.3.0",
+    "request": "^2.74.0",
     "ws": "^1.1.1"
   },
   "description": "Client for the GDAX API",
   "devDependencies": {
-    "typescript": "^1.8.10",
+    "mocha": "^3.0.2",
     "nock": "3.6.0",
-    "mocha": "1.20.1"
+    "typescript": "^1.8.10"
   },
   "directories": {
     "lib": "./lib"
@@ -54,14 +54,20 @@
   ],
   "license": "MIT",
   "main": "index.js",
-  "prepublish": "tsc",
   "repository": {
     "type": "git",
     "url": "git://github.com/coinbase/gdax-node.git"
   },
   "scripts": {
-    "test": "tsc && mocha --ui qunit --reporter list tests/*.js && rm -r lib && rm index.js && rm index.d.ts",
-    "compile": "tsc"
+    "prepublish": "npm test && npm run compile",
+
+    "pretest": "npm run compile",
+    "test": "mocha --ui qunit --reporter list tests/*.js",
+    "posttest": "npm run clean",
+
+
+    "compile": "tsc",
+    "clean": "rm -r lib && rm index.js && rm index.d.ts"
   },
   "typescript": {}
 }
