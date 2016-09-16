@@ -1,17 +1,17 @@
 ///<reference path="../typings/index.d.ts" />
 import events = require('events');
-var Websocket = require('ws');
+import Websocket = require('ws');
 
 export default class WebsocketClient extends events.EventEmitter {
-  productID: string;
-  websocketURI: string;
-  protected socket: any;//TODO import Websocket appropriately and re-type this
+  protected productID: string;
+  protected websocketURI: string = 'wss://ws-feed.gdax.com';
+  protected socket: Websocket;//TODO import Websocket appropriately and re-type this
   protected pinger: NodeJS.Timer;
 
-  constructor(productID?: string, websocketURI?: string) {
+  constructor(productID?: string, opts?: { websocketURI?: string }) {
     super();
     this.productID = productID || 'BTC-USD';
-    this.websocketURI = websocketURI || 'wss://ws-feed.gdax.com';
+    this.websocketURI = opts && opts.websocketURI ? opts.websocketURI : this.websocketURI;
     this.connect();
   }
 
@@ -55,7 +55,5 @@ export default class WebsocketClient extends events.EventEmitter {
     this.emit('close');
   }
 
-  protected onMessage(data: string) {
-    this.emit('message', JSON.parse(data));
-  }
+  protected onMessage(data: string) { this.emit('message', JSON.parse(data)); }
 }

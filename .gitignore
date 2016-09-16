@@ -6,3 +6,4 @@ lib/*
 
 index.d.ts
 index.js
+.vscode

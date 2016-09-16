@@ -1,4 +1,4 @@
-///<reference path="typings/index.d.ts" />
+///<reference path="../typings/index.d.ts" />
 var RBTree = require('bintrees').RBTree;
 var num = require('num');
 var assert = require('assert');
@@ -24,8 +24,7 @@ export default class Orderbook {
 
   state(book?: Book) {
     if (book) {
-
-      book.bids.forEach(function (order: any) {//TODO better typing
+      book.bids.forEach((order: any) => {//TODO better typing
         order = {
           id: order[2],
           side: 'buy',
@@ -33,9 +32,9 @@ export default class Orderbook {
           size: num(order[1])
         }
         this.add(order);
-      }.bind(this));
+      });
 
-      book.asks.forEach(function (order: any) {//TODO better typing
+      book.asks.forEach((order: any) => {//TODO better typing
         order = {
           id: order[2],
           side: 'sell',
@@ -43,7 +42,7 @@ export default class Orderbook {
           size: num(order[1])
         }
         this.add(order);
-      }.bind(this));
+      });
 
     } else {
 
@@ -52,14 +51,14 @@ export default class Orderbook {
         bids: []
       };
 
-      this.bids.reach(function (bid) {
-        bid.orders.forEach(function (order: any) {
+      this.bids.reach(bid => {
+        bid.orders.forEach((order: any) => {
           book.bids.push(order);
         });
       });
 
-      this.asks.each(function (ask) {
-        ask.orders.forEach(function (order: any) {
+      this.asks.each(ask => {
+        ask.orders.forEach((order: any) => {
           book.asks.push(order);
         });
       });
