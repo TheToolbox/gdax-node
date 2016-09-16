@@ -5,29 +5,29 @@ var Websocket = require('ws');
 export default class WebsocketClient extends events.EventEmitter {
   productID: string;
   websocketURI: string;
-  private socket: any;//TODO import Websocket appropriately and re-type this
-  private pinger: NodeJS.Timer;
+  protected socket: any;//TODO import Websocket appropriately and re-type this
+  protected pinger: NodeJS.Timer;
 
-  constructor(productID : string, websocketURI : string) {
+  constructor(productID?: string, websocketURI?: string) {
     super();
     this.productID = productID || 'BTC-USD';
     this.websocketURI = websocketURI || 'wss://ws-feed.gdax.com';
     this.connect();
   }
 
-  connect() : void {
+  connect(): void {
     if (this.socket) {
       this.socket.close();
     }
 
     this.socket = new Websocket(this.websocketURI);
 
+    this.socket.on('close', this.onClose.bind(this));
     this.socket.on('message', this.onMessage.bind(this));
-    this.socket.on('open',    this.onOpen.bind(this));
-    this.socket.on('close',   this.onClose.bind(this));
+    this.socket.on('open', this.onOpen.bind(this));
   }
 
-  disconnect() : void {
+  disconnect(): void {
     if (!this.socket) {
       throw "Could not disconnect (not connected)"
     }
@@ -35,7 +35,7 @@ export default class WebsocketClient extends events.EventEmitter {
     this.socket.close();
   }
 
-  onOpen() {
+  protected onOpen() {
     this.emit('open');
     var subscribeMessage = {
       type: 'subscribe',
@@ -44,19 +44,18 @@ export default class WebsocketClient extends events.EventEmitter {
     this.socket.send(JSON.stringify(subscribeMessage));
 
     // Set a 30 second ping to keep connection alive
-    this.pinger = setInterval(function(){
-      this.socket.ping("keepalive");
-    }, 30000);
+
+    this.pinger = setInterval(() => { this.socket.ping('keepalive') }, 30000);
 
   }
 
-  onClose() {
+  protected onClose() {
     clearInterval(this.pinger);
     this.socket = null;
     this.emit('close');
   }
 
-  onMessage(data : string) {
+  protected onMessage(data: string) {
     this.emit('message', JSON.parse(data));
   }
 }

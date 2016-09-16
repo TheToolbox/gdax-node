@@ -10,24 +10,21 @@ export default class OrderbookSync extends WebsocketClient {
   apiURI: string;
   //websocketURI: string;
   book: Orderbook;
-  publicClient: PublicClient;
-  authenticatedClient: AuthenticatedClient;
+  private publicClient: PublicClient;
+  private authenticatedClient: AuthenticatedClient;
 
   private queue: any[] = [];//TODO TYPE
   private sequence = -1;
 
-  constructor(productID: string, apiURI: string, websocketURI: string, authenticatedClient: AuthenticatedClient) {
-    super(productID || 'BTC-USD', websocketURI || 'wss://ws-feed.gdax.com')
-    //this.productID = productID || 'BTC-USD';
+  constructor(productID?: string, apiURI?: string, websocketURI?: string, authenticatedClient?: AuthenticatedClient) {
+    super(productID, websocketURI)
     this.apiURI = apiURI || 'https://api.gdax.com';
-    //this.websocketURI = websocketURI || 'wss://ws-feed.gdax.com';
     this.authenticatedClient = authenticatedClient;
 
-    WebsocketClient.call(this, this.productID, this.websocketURI);
     this.loadOrderbook();
   }
 
-  onMessage(data: string) {/*TODO handle errors*/
+  protected onMessage(data: string) {/*TODO handle errors*/
     if (this.sequence === -1) {
       // Orderbook snapshot not loaded yet
       this.queue.push(JSON.parse(data));
@@ -64,7 +61,7 @@ export default class OrderbookSync extends WebsocketClient {
   }
 
 
-  processMessage(data: any) {//TODO add more specfic typing
+  protected processMessage(data: any) {//TODO add more specfic typing
     if (this.sequence == -1) {
       // Resync is in process
       return;
