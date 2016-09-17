@@ -4,6 +4,6 @@ lib/*
 *.log
 *.tgz
 
-index.d.ts
+/index.d.ts
 index.js
 .vscode
