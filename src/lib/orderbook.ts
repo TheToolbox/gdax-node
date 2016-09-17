@@ -1,4 +1,3 @@
-///<reference path="../typings/index.d.ts" />
 var RBTree = require('bintrees').RBTree;
 var num = require('num');
 var assert = require('assert');

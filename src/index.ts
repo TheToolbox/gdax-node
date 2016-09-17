@@ -1,4 +1,3 @@
-///<reference path="typings/index.d.ts" />
 import https = require('https');
 import http = require('http');
 import qs = require('querystring');

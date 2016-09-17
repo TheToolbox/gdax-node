@@ -1,11 +1,10 @@
-///<reference path="../typings/index.d.ts" />
 import events = require('events');
 import Websocket = require('ws');
 
 export default class WebsocketClient extends events.EventEmitter {
   protected productID: string;
   protected websocketURI: string = 'wss://ws-feed.gdax.com';
-  protected socket: Websocket;//TODO import Websocket appropriately and re-type this
+  private socket: Websocket;//TODO import Websocket appropriately and re-type this
   protected pinger: NodeJS.Timer;
 
   constructor(productID?: string, opts?: { websocketURI?: string }) {

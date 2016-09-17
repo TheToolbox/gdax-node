@@ -52,7 +52,7 @@
     "ethereum"
   ],
   "license": "MIT",
-  "main": "index.js",
+  "main": "index",
   "repository": {
     "type": "git",
     "url": "git://github.com/coinbase/gdax-node.git"
@@ -65,5 +65,6 @@
     "compile": "tsc",
     "clean": "rm -r lib && rm index.js && rm index.d.ts"
   },
-  "typescript": {}
+  "typescript": {},
+  "typings": "index"
 }
