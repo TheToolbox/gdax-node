@@ -58,7 +58,7 @@
     "url": "git://github.com/coinbase/gdax-node.git"
   },
   "scripts": {
-    "prepublish": "npm test && npm run compile",
+    "prepublish": "npm run compile",
     "pretest": "npm run compile",
     "test": "mocha --ui qunit --reporter list tests/*.js",
     "posttest": "npm run clean",
